@@ -195,6 +195,7 @@ Same `$select`. Rollup fields additionally expose `<field>_date` (last calc) and
 
 - Image (e.g. `entityimage`): `$select=entityimage` returns base64 thumbnail; also `entityimage_url`, `entityimage_timestamp`, `_entityimageid_value`. Full image via `GET /entityimages(<id>)/$value`.
 - File: `$select` the column for metadata; download via `GET .../<filefield>/$value`.
+- **From a code app, don't hand-roll these HTTP calls** — use `<Table>Service.upload / downloadImage / deleteFileOrImage` (see "Image / file columns" under the SDK section below).
 
 ### Collections (1:N / N:N)
 
@@ -302,9 +303,15 @@ What the generated model (`AccountsModel.ts`) gives you **in the TypeScript type
     select: ["fullname", "emailaddress1", "jobtitle"],
   })).data!;
   ```
-  For list pages that need related fields on many rows, fetch the parent list first, collect the `_<lookup>_value` GUIDs, then chain them into a single `ContactsService.getAll({ filter: "contactid eq <g1> or contactid eq <g2> or …" })` call and join client-side. **Do NOT use `contactid in (…)` syntax** — verified live: Dataverse rejects it with `0x8006088a "The query node In is not supported"` in both quoted and unquoted forms (this is a Dataverse limitation, not SDK). If `$expand` is strictly required, you can bypass the typed service and call the raw connector via `getClient(dataSourcesInfo).executeAsync({ dataverseRequest: { ... } })`, but this is undocumented and not recommended.
-- **Image / file columns** — use the service methods, not `$select`: `AccountsService.downloadImage(id, 'entityimage', fullSize)`, `upload(id, columnName, file)`, `deleteFileOrImage(id, columnName)`.
-- **Metadata** — `AccountsService.getMetadata({ ... })` for entity/attribute metadata, no raw `EntityDefinitions(...)` calls.
+  For list pages that need related fields on many rows, fetch the parent list first, collect the `_<lookup>_value` GUIDs, then chain them into a single `ContactsService.getAll({ filter: "contactid eq <g1> or contactid eq <g2> or …" })` call and join client-side. **Do NOT use `contactid in (…)` syntax** — verified live: Dataverse rejects it with `0x8006088a "The query node In is not supported"` in both quoted and unquoted forms (this is a Dataverse limitation, not SDK). **The `executeAsync({ dataverseRequest: ... })` escape hatch does NOT support arbitrary actions** — verified live: `action: "retrieveMultipleRecords"` (or any other retrieve verb) returns `"Unsupported Dataverse action"`. Only specific actions the SDK whitelists work (`getEntityMetadata` is one). Treat the typed services as the only supported query surface; there is **no $expand escape hatch** from a code app today.
+- **Image / file columns** — use the service methods, not `$select`: `AccountsService.downloadImage(id, 'entityimage', fullSize)`, `upload(id, columnName, file, fileDisplayName?)`, `deleteFileOrImage(id, columnName)`. Verified live end-to-end against Dataverse:
+  - `upload` issues `PATCH /<set>(<id>)/<column>` with the raw bytes and returns `IOperationResult<void>` (HTTP `204 No Content` on success). The SDK converts the `File` to `Uint8Array` for you.
+  - After a successful upload, reading back `entityimageid`, `entityimage_url`, and `entityimage_timestamp` all succeed via `$select` on normal `get` / `getAll`.
+  - **`downloadImage(id, 'entityimage', true)` can return `204 No Content` even after a 10-attempt / ~10-second retry** following a fresh `upload`. Verified live. The image IS stored (read-back shows `entityimageid`, `entityimage_url`, `entityimage_timestamp` populated), but the `/entityimage/$value?size=full` endpoint serves `204`. **Render via `entityimage_url` (returned from any normal `get` / `getAll`) instead of waiting for `downloadImage`.** Also try `fullSize=false` (thumbnail path) — it uses a different URL and may be more reliable.
+  - Downloaded bytes are a real `Uint8Array` (not base64). First bytes on a PNG upload come back as `89 50 4e 47` (PNG magic) — safe to wrap in `new Blob([bytes.buffer as ArrayBuffer], { type })` for `<img src={URL.createObjectURL(blob)}>`.
+  - `deleteFileOrImage(id, 'entityimage')` clears the column (also returns `204`).
+  - Column name must be typed as `Accounts<EntityName>UploadColumnName` / `...ImageColumnName` from the generated model. For `account` the only value is `'entityimage'`.
+- **Metadata** — `AccountsService.getMetadata({ ... })` for entity/attribute metadata, no raw `EntityDefinitions(...)` calls. Verified live: passing `{}` returns only a **skinny envelope** (`@odata.context`, `MetadataId`, `LogicalName` — 3 keys). To get attributes, option-set labels, relationships you must pass fields in the options — see `GetEntityMetadataOptions` (type params: `{ attributes?, relationships?, oneToManyRelationships?, manyToOneRelationships?, manyToManyRelationships?, keys? }` with nested `select` on each). Always pass the narrowest options you need; there is no "give me everything" flag.
 
 Practical rules for code apps:
 
@@ -319,7 +326,9 @@ Practical rules for code apps:
 6. Money/date columns also get `@OData.Community.Display.V1.FormattedValue` keys (pre-formatted currency/date strings) — handy to skip `Intl.NumberFormat`.
 7. **No `$expand` in the typed SDK.** `IGetOptions` / `IGetAllOptions` are `select`-only — there is no `expand` field. For related fields, fetch by id via the related table's service (N+1), or **chain `eq` with `or`** (e.g. `filter: "contactid eq <g1> or contactid eq <g2>"`). **Dataverse does not support `in (…)`** — verified live: both `in (g1,g2)` and `in ('g1','g2')` return `0x8006088a "The query node In is not supported"`.
 8. **Write lookups use `<navproperty>@odata.bind: "/<entitySet>(<guid>)"`** inside `create` / `update` payloads (cast the payload — the generated type doesn't include the bind key). Nav property name and entity-set name both come from the **read-side annotations** (`@associatednavigationproperty` + entity-set pluralization you already see in `_<lookup>_value` patterns).
-9. Don't edit `src/generated/**`. Re-run `npx power-apps add-data-source` when the schema changes.
+9. **Clearing a lookup** — use `<navproperty>@odata.bind: null` in the `update` payload. **Verified live**: accepted and the read-back `_<lookup>_value` becomes `null`. **Do NOT try `_<lookup>_value: null`** — Dataverse rejects with `0x80060888 "Property _<lookup>_value cannot be updated to null. The reference property can only be deleted."` The `$ref DELETE` endpoint would also work but isn't reachable from the typed SDK — stick with null @odata.bind.
+10. **Filter string operators** — `contains(col,'x')`, `startswith(col,'x')`, `endswith(col,'x')` all parse against Dataverse via the typed SDK's `filter` string. **Verified live**: `contains` is **case-insensitive** (`contains(name,'a')` and `contains(name,'A')` return identical rows). Don't lowercase your filter input on the client expecting a case-sensitive server match.
+11. Don't edit `src/generated/**`. Re-run `npx power-apps add-data-source` when the schema changes.
 
 ## SDK surface beyond `$select`
 
@@ -584,6 +593,10 @@ This is how the polymorphic owner annotations were confirmed:
 
 ### Gotchas observed
 
+- **The app iframe is cross-origin.** The Power Apps host (`apps.powerapps.com`) embeds your Vite dev server (`localhost:5173`) in an `<iframe title="application">`. MCP `take_snapshot` flattens both frames so you can read the a11y tree and see `uid`s for inner elements — but `click` / `upload_file` / `fill` against those `uid`s often fail because they dispatch to the top frame's context. Two reliable workarounds:
+  1. **Autorun pattern**: add a URL flag (e.g. `?autorun=1`) to the page that runs the scenario from a `useEffect` on mount. Navigate to `…?_localAppUrl=http://localhost:5173/<route>?autorun=1&…` and the page drives itself. This is how `AccountsService.upload` was verified end-to-end.
+  2. **Local-only pages**: opening `http://localhost:5173/<route>` directly in a new tab bypasses the iframe, but then the Power Apps SDK **does not initialize** (no `_localConnectionUrl` bootstrap) and every Dataverse call hangs. Use this only for pure-UI tests with no data calls.
+- **Do NOT read Dataverse bytes back immediately after `upload`.** `AccountsService.downloadImage(id, 'entityimage', true)` called right after a successful `PATCH …/entityimage` can return `204 No Content` — Dataverse has accepted the upload but hasn't materialized the read-side image yet. Retry with a short delay, or read `entityimage_url` from a subsequent `get` and render from there.
 - **Port**: the starter uses Vite's default `5173` via the `@microsoft/power-apps-vite` plugin — `npx power-apps run` is not needed and `init --app-url http://localhost:3000` is stale. Use `http://localhost:5173/` in the `_localAppUrl` / `_localConnectionUrl` query params.
 - **Multiple Chrome channels**: MCP picks the *first* `127.0.0.1:9222`. If both stable and beta expose 9222, results are non-deterministic — close one or change `--channel`.
 - **Console truncation**: `list_console_messages` summarises objects as `[object Object]`. Always follow up with `get_console_message({ msgid })` to get the full `Arg #N` dump.
