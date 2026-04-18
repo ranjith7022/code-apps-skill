@@ -5,13 +5,14 @@ description: Build, run, and deploy Power Apps code apps — custom web apps (Re
 
 ## Core Concepts
 
-**What is a code app**: A web app built with standard web tech (React, Vite, TypeScript) that runs *inside* Power Apps. It authenticates via Microsoft Entra, uses Power Platform connectors/Dataverse/flows as data sources, and is published to a Power Platform environment. Apps run in the browser only (not Power Apps mobile/Windows) and require a Power Apps Premium license for end users.
+**What is a code app**: A web app built with standard web tech (React, Vite, TypeScript) that runs _inside_ Power Apps. It authenticates via Microsoft Entra, uses Power Platform connectors/Dataverse/flows as data sources, and is published to a Power Platform environment. Apps run in the browser only (not Power Apps mobile/Windows) and require a Power Apps Premium license for end users.
 
 **CLI**: Prefer `npx power-apps <command>` from `@microsoft/power-apps-cli` (bundled with `@microsoft/power-apps` v1.0.4+). It replaces the deprecated `pac code` commands. Runs interactively by default; pass flags or add `--non-interactive` for scripting.
 
 **Config file**: `power.config.json` in the project root stores `environmentId`, `region`, connection references, data sources, and flows. Most CLI commands read and/or mutate this file.
 
 **Prerequisites**:
+
 - Node.js LTS and npm
 - Code apps enabled on the target environment (Power Platform admin center → Environments → Settings → Product → Features → "Enable code apps")
 - Power Apps Premium license for end users
@@ -90,19 +91,21 @@ npx power-apps push            # uploads and registers the app in the environmen
 
 Verify with `npx power-apps list-codeapps`. The app then appears in Power Apps → Apps.
 
+Always check lint at the end of the task before considering the work done. In this repo, run `vp lint .` and fix any reported issues.
+
 ## Common Commands Reference
 
-| Task | Command |
-|------|---------|
-| Global help | `npx power-apps --help` |
-| Command help | `npx power-apps <command> --help` |
-| Switch environment | re-run `init` or edit `power.config.json` `environmentId`; use `-e <guid>` per-command |
-| List apps | `npx power-apps list-codeapps` |
-| List connection refs | `npx power-apps list-connection-references [-s <solution-id>]` |
-| List flows | `npx power-apps list-flows [--search <term>]` |
-| Env variables | `npx power-apps list-environment-variables` |
-| Logout | `npx power-apps logout` |
-| Telemetry | `npx power-apps telemetry --show-settings` / `--disable` |
+| Task                 | Command                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| Global help          | `npx power-apps --help`                                                                |
+| Command help         | `npx power-apps <command> --help`                                                      |
+| Switch environment   | re-run `init` or edit `power.config.json` `environmentId`; use `-e <guid>` per-command |
+| List apps            | `npx power-apps list-codeapps`                                                         |
+| List connection refs | `npx power-apps list-connection-references [-s <solution-id>]`                         |
+| List flows           | `npx power-apps list-flows [--search <term>]`                                          |
+| Env variables        | `npx power-apps list-environment-variables`                                            |
+| Logout               | `npx power-apps logout`                                                                |
+| Telemetry            | `npx power-apps telemetry --show-settings` / `--disable`                               |
 
 Global flags available on every command: `--cloud <prod|test|...>`, `-e/--environment-id`, `--non-interactive`, `--json`, `--no-color`.
 
@@ -142,6 +145,7 @@ Prefer: odata.include-annotations="OData.Community.Display.V1.FormattedValue,Mic
 ```
 
 Returned annotations:
+
 - `...@OData.Community.Display.V1.FormattedValue` — primary name of the related record
 - `...@Microsoft.Dynamics.CRM.lookuplogicalname` — target table (required for polymorphic lookups: Customer, Owner, Regarding)
 - `...@Microsoft.Dynamics.CRM.associatednavigationproperty` — nav property to use with `$expand`
@@ -234,33 +238,33 @@ Docs: [Query data](https://learn.microsoft.com/power-apps/developer/data-platfor
 The generated service (e.g. `src/generated/services/AccountsService.ts`) wraps `@microsoft/power-apps/data`'s client. You do **not** build raw `$select=...&Prefer:...` URLs; use `IGetOptions` / `IGetAllOptions` with a `select: string[]`:
 
 ```ts
-import { AccountsService } from '@/generated/services/AccountsService';
+import { AccountsService } from "@/generated/services/AccountsService";
 
 const { data } = await AccountsService.getAll({
   select: [
-    'name',
-    'revenue',
-    'statuscode',              // option set — integer value
-    'industrycode',
-    '_primarycontactid_value', // lookup GUID
+    "name",
+    "revenue",
+    "statuscode", // option set — integer value
+    "industrycode",
+    "_primarycontactid_value", // lookup GUID
   ],
-  filter: 'statecode eq 0',
+  filter: "statecode eq 0",
   top: 50,
 });
 // Display labels come back as OData annotation keys on each row, NOT as
 // `<field>name` properties. Read them like this:
 const row = data![0];
-const statusLabel        = row['statuscode@OData.Community.Display.V1.FormattedValue'];            // "Active"
-const industryLabel      = row['industrycode@OData.Community.Display.V1.FormattedValue'];          // "Consulting"
-const primaryContactName = row['_primarycontactid_value@OData.Community.Display.V1.FormattedValue']; // "Rene Valdes"
-const contactTable       = row['_primarycontactid_value@Microsoft.Dynamics.CRM.lookuplogicalname'];  // "contact"
-const revenueFormatted   = row['revenue@OData.Community.Display.V1.FormattedValue'];               // "$10,000.00"
+const statusLabel = row["statuscode@OData.Community.Display.V1.FormattedValue"]; // "Active"
+const industryLabel = row["industrycode@OData.Community.Display.V1.FormattedValue"]; // "Consulting"
+const primaryContactName = row["_primarycontactid_value@OData.Community.Display.V1.FormattedValue"]; // "Rene Valdes"
+const contactTable = row["_primarycontactid_value@Microsoft.Dynamics.CRM.lookuplogicalname"]; // "contact"
+const revenueFormatted = row["revenue@OData.Community.Display.V1.FormattedValue"]; // "$10,000.00"
 ```
 
 A small helper keeps the UI code clean:
 
 ```ts
-const FV = '@OData.Community.Display.V1.FormattedValue';
+const FV = "@OData.Community.Display.V1.FormattedValue";
 const formatted = <T extends object>(row: T, col: string) =>
   (row as Record<string, unknown>)[col + FV] as string | undefined;
 ```
@@ -271,17 +275,18 @@ What the generated model (`AccountsModel.ts`) gives you **in the TypeScript type
 - **Option sets** — typed as generated string-enum unions (`Accountsstatuscode`, `Accountsindustrycode`) holding the integer value (keyed numerically). The model also declares optional `<field>name` properties (`statuscodename`, `industrycodename`, `primarycontactidname`, …) — these are **convenience declarations for write scenarios / future compatibility; the runtime does NOT populate them** on reads. Do not read from them.
 - **Lookups (read)** — `_<lookup>_value` (GUID) is a real column. Display name, target table, and nav property arrive as OData annotation keys on the result object (see above). The `<lookup>name` TS property is not populated at runtime — ignore it.
 - **Lookups (write / `@odata.bind`)** — the generated `create` / `update` signatures type the payload as `Omit<AccountsBase,'accountid'>` which does **not** include `@odata.bind` keys. Cast the payload and use the **navigation property name** (from the `@Microsoft.Dynamics.CRM.associatednavigationproperty` annotation — lowercase, e.g. `primarycontactid`, `ownerid`) bound to `/<entitySetName>(<guid>)` (plural, lowercase, e.g. `/contacts(...)`, `/systemusers(...)`):
+
   ```ts
-  await AccountsService.create(
-    {
-      name: "Fabrikam",
-      "primarycontactid@odata.bind": `/contacts(${contactId})`,
-      // polymorphic — pick the right collection based on the target:
-      "ownerid@odata.bind": `/systemusers(${userId})`, // or /teams(${teamId})
-    } as unknown as Parameters<typeof AccountsService.create>[0],
-  );
+  await AccountsService.create({
+    name: "Fabrikam",
+    "primarycontactid@odata.bind": `/contacts(${contactId})`,
+    // polymorphic — pick the right collection based on the target:
+    "ownerid@odata.bind": `/systemusers(${userId})`, // or /teams(${teamId})
+  } as unknown as Parameters<typeof AccountsService.create>[0]);
   ```
+
   Verified on-the-wire request the SDK emits (batched to `/api/data/v9.0/$batch`):
+
   ```http
   POST accounts HTTP/1.1
   Accept: application/json
@@ -290,20 +295,29 @@ What the generated model (`AccountsModel.ts`) gives you **in the TypeScript type
 
   {"name":"...","primarycontactid@odata.bind":"/contacts(fa387ae6-ef2b-...)"}
   ```
+
   Response is `201 Created` and — because the SDK always sends `return=representation,odata.include-annotations=*` — `IOperationResult.data` already contains every annotation (`_primarycontactid_value@OData.Community.Display.V1.FormattedValue`, etc.) with no extra round-trip. `update` uses the same `@odata.bind` form inside the `changedFields` argument.
+
 - **`$expand` / related rows** — **not supported by the generated SDK.** `IGetOptions` and `IGetAllOptions` expose only `select / filter / orderBy / top / skip / count / skipToken / maxPageSize` (verified in `@microsoft/power-apps/dist/internal/data/core/types/index.d.ts`). There is no `expand` field. To pull fields from a related row, use the **N+1 pattern**: `select` the `_<lookup>_value`, then call the related table's service by id:
+
   ```ts
-  const acc = (await AccountsService.getAll({
-    select: ["accountid", "name", "_primarycontactid_value"] as string[],
-    top: 1,
-  })).data![0] as Accounts & Record<string, unknown>;
+  const acc = (
+    await AccountsService.getAll({
+      select: ["accountid", "name", "_primarycontactid_value"] as string[],
+      top: 1,
+    })
+  ).data![0] as Accounts & Record<string, unknown>;
 
   const contactId = acc._primarycontactid_value as string;
-  const contact = (await ContactsService.get(contactId, {
-    select: ["fullname", "emailaddress1", "jobtitle"],
-  })).data!;
+  const contact = (
+    await ContactsService.get(contactId, {
+      select: ["fullname", "emailaddress1", "jobtitle"],
+    })
+  ).data!;
   ```
+
   For list pages that need related fields on many rows, fetch the parent list first, collect the `_<lookup>_value` GUIDs, then chain them into a single `ContactsService.getAll({ filter: "contactid eq <g1> or contactid eq <g2> or …" })` call and join client-side. **Do NOT use `contactid in (…)` syntax** — verified live: Dataverse rejects it with `0x8006088a "The query node In is not supported"` in both quoted and unquoted forms (this is a Dataverse limitation, not SDK). **The `executeAsync({ dataverseRequest: ... })` escape hatch does NOT support arbitrary actions** — verified live: `action: "retrieveMultipleRecords"` (or any other retrieve verb) returns `"Unsupported Dataverse action"`. Only specific actions the SDK whitelists work (`getEntityMetadata` is one). Treat the typed services as the only supported query surface; there is **no $expand escape hatch** from a code app today.
+
 - **Image / file columns** — use the service methods, not `$select`: `AccountsService.downloadImage(id, 'entityimage', fullSize)`, `upload(id, columnName, file, fileDisplayName?)`, `deleteFileOrImage(id, columnName)`. Verified live end-to-end against Dataverse:
   - `upload` issues `PATCH /<set>(<id>)/<column>` with the raw bytes and returns `IOperationResult<void>` (HTTP `204 No Content` on success). The SDK converts the `File` to `Uint8Array` for you.
   - After a successful upload, reading back `entityimageid`, `entityimage_url`, and `entityimage_timestamp` all succeed via `$select` on normal `get` / `getAll`.
@@ -336,13 +350,13 @@ Practical rules for code apps:
 
 `@microsoft/power-apps` (v1.1.x) has **no root entry** — the package.json `exports` map only exposes subpaths. Always import from a subpath:
 
-| Import from | Surface |
-|---|---|
-| `@microsoft/power-apps/app` | `getContext`, `setConfig`, `IContext`, `IConfig` |
-| `@microsoft/power-apps/data` | `getClient`, `IOperationOptions`, `IOperationResult`, `DataClient`, `serializeMultiSelectPicklistFields`, `deserializeMultiSelectPicklistFields` |
-| `@microsoft/power-apps/data/executors` | `createMockDataExecutor`, `MockDataStore`, `IDataOperationExecutor` |
-| `@microsoft/power-apps/data/metadata/dataverse` | `EntityMetadata`, `GetEntityMetadataOptions`, label helpers (`getAttributeTypeCodeName`, `getCascadeTypeName`, …) |
-| `@microsoft/power-apps/telemetry` | `initializeLogger`, `ILogger`, metric types |
+| Import from                                     | Surface                                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@microsoft/power-apps/app`                     | `getContext`, `setConfig`, `IContext`, `IConfig`                                                                                                 |
+| `@microsoft/power-apps/data`                    | `getClient`, `IOperationOptions`, `IOperationResult`, `DataClient`, `serializeMultiSelectPicklistFields`, `deserializeMultiSelectPicklistFields` |
+| `@microsoft/power-apps/data/executors`          | `createMockDataExecutor`, `MockDataStore`, `IDataOperationExecutor`                                                                              |
+| `@microsoft/power-apps/data/metadata/dataverse` | `EntityMetadata`, `GetEntityMetadataOptions`, label helpers (`getAttributeTypeCodeName`, `getCascadeTypeName`, …)                                |
+| `@microsoft/power-apps/telemetry`               | `initializeLogger`, `ILogger`, metric types                                                                                                      |
 
 `import { app } from '@microsoft/power-apps'` **fails** with `Failed to resolve entry for package … Missing "." specifier` — verified live against Vite.
 
@@ -351,7 +365,7 @@ Practical rules for code apps:
 Returns a **`Promise<IContext>`** — you MUST `await` it:
 
 ```ts
-import { getContext } from '@microsoft/power-apps/app';
+import { getContext } from "@microsoft/power-apps/app";
 
 const ctx = await getContext();
 // Verified shape (live):
@@ -387,13 +401,14 @@ if (page1.skipToken) {
     select: ["accountid", "name"] as string[],
     orderBy: ["name asc"],
     maxPageSize: 3,
-    skipToken: page1.skipToken,     // ← round-trip the raw cookie
+    skipToken: page1.skipToken, // ← round-trip the raw cookie
   });
   // page2.data has the next 3 rows, zero overlap with page1 — verified.
 }
 ```
 
 Key points:
+
 - The `skipToken` field lives on `IOperationResult` (sibling to `data`), **not inside `data`**.
 - Pass it back verbatim as the next call's `skipToken`. Do not URL-encode/decode.
 - `count` (total) is only returned when you pass `count: true` in the request options.
@@ -433,19 +448,19 @@ Skip these helpers and your reads see `"1,3,7"` as a string and your writes eith
 
 The SDK passes the string straight into OData `$filter`. Core operators:
 
-| Pattern | Example |
-|---|---|
-| Equality | `name eq 'Fabrikam'` |
-| Inequality | `statecode ne 1` |
-| Comparison | `revenue gt 1000 and revenue le 100000` |
-| Null | `_primarycontactid_value ne null` |
-| Logical | `... and ...`, `... or ...`, `not(...)` |
-| Parentheses | `(a eq 1 or b eq 2) and c eq 3` |
-| Lookup GUID | `_primarycontactid_value eq <guid>` — **no quotes on GUIDs** |
-| String GUID column fields (`accountid`, etc.) | `accountid eq <guid>` — also no quotes |
-| Multi-id lookup | `accountid eq <g1> or accountid eq <g2>` — **`in (…)` is NOT supported** (`0x8006088a`) |
-| String fns | `contains(name,'oil')`, `startswith(name,'Con')`, `endswith(name,'Ltd')` |
-| Date fns | `Microsoft.Dynamics.CRM.On(PropertyName='createdon',PropertyValue='2024-01-01')`, `Microsoft.Dynamics.CRM.LastXDays(PropertyName='createdon',PropertyValue=30)` |
+| Pattern                                       | Example                                                                                                                                                         |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Equality                                      | `name eq 'Fabrikam'`                                                                                                                                            |
+| Inequality                                    | `statecode ne 1`                                                                                                                                                |
+| Comparison                                    | `revenue gt 1000 and revenue le 100000`                                                                                                                         |
+| Null                                          | `_primarycontactid_value ne null`                                                                                                                               |
+| Logical                                       | `... and ...`, `... or ...`, `not(...)`                                                                                                                         |
+| Parentheses                                   | `(a eq 1 or b eq 2) and c eq 3`                                                                                                                                 |
+| Lookup GUID                                   | `_primarycontactid_value eq <guid>` — **no quotes on GUIDs**                                                                                                    |
+| String GUID column fields (`accountid`, etc.) | `accountid eq <guid>` — also no quotes                                                                                                                          |
+| Multi-id lookup                               | `accountid eq <g1> or accountid eq <g2>` — **`in (…)` is NOT supported** (`0x8006088a`)                                                                         |
+| String fns                                    | `contains(name,'oil')`, `startswith(name,'Con')`, `endswith(name,'Ltd')`                                                                                        |
+| Date fns                                      | `Microsoft.Dynamics.CRM.On(PropertyName='createdon',PropertyValue='2024-01-01')`, `Microsoft.Dynamics.CRM.LastXDays(PropertyName='createdon',PropertyValue=30)` |
 
 Strings need single quotes and apostrophes are escaped by doubling: `name eq 'O''Brien'`. Dates and GUIDs go unquoted. Do **not** URL-encode the string yourself — the SDK handles it.
 
@@ -454,13 +469,13 @@ Strings need single quotes and apostrophes are escaped by doubling: `name eq 'O'
 Replace the live connector with an in-memory store — no Power Apps host, no Vite plugin, no network:
 
 ```ts
-import { createMockDataExecutor } from '@microsoft/power-apps/data/executors';
-import { setDataOperationExecutor } from '@microsoft/power-apps/internal/data';
+import { createMockDataExecutor } from "@microsoft/power-apps/data/executors";
+import { setDataOperationExecutor } from "@microsoft/power-apps/internal/data";
 
 const mock = createMockDataExecutor({
   accounts: [
-    { accountid: 'g1', name: 'Fabrikam', statecode: 0, statuscode: 1 },
-    { accountid: 'g2', name: 'Contoso',  statecode: 0, statuscode: 1 },
+    { accountid: "g1", name: "Fabrikam", statecode: 0, statuscode: 1 },
+    { accountid: "g2", name: "Contoso", statecode: 0, statuscode: 1 },
   ],
 });
 setDataOperationExecutor(mock);
@@ -474,10 +489,12 @@ Useful for Jest/Vitest tests and Storybook stories of data-bound components.
 Route app `console.log`-level output into Power Apps telemetry so it flows through `npx power-apps telemetry`:
 
 ```ts
-import { setConfig } from '@microsoft/power-apps/app';
-import { initializeLogger } from '@microsoft/power-apps/telemetry';
+import { setConfig } from "@microsoft/power-apps/app";
+import { initializeLogger } from "@microsoft/power-apps/telemetry";
 
-const logger = { /* implements ILogger */ };
+const logger = {
+  /* implements ILogger */
+};
 await initializeLogger(logger);
 setConfig({ logger });
 ```
@@ -555,9 +572,7 @@ Open the URL via `new_page` / `navigate_page`. The app loads inside an **iframe*
 // Temporarily, inside the query function:
 if (result.data?.[0]) {
   const r = result.data[0] as unknown as Record<string, unknown>;
-  const annotations = Object.fromEntries(
-    Object.entries(r).filter(([k]) => k.includes("@")),
-  );
+  const annotations = Object.fromEntries(Object.entries(r).filter(([k]) => k.includes("@")));
   console.log("[accounts] annotations on first row:", annotations);
   console.log("[accounts] all keys:", Object.keys(r));
 }
@@ -580,8 +595,11 @@ This is how the polymorphic owner annotations were confirmed:
 `evaluate_script` is an alternative for ad-hoc probes without code edits:
 
 ```ts
-() => Object.keys(window.performance.getEntriesByType("resource")
-  .find(r => r.name.includes("/api/data/")) ?? {})
+() =>
+  Object.keys(
+    window.performance.getEntriesByType("resource").find((r) => r.name.includes("/api/data/")) ??
+      {},
+  );
 ```
 
 ### 5. Drive the UI to trigger code paths
@@ -598,7 +616,7 @@ This is how the polymorphic owner annotations were confirmed:
   2. **Local-only pages**: opening `http://localhost:5173/<route>` directly in a new tab bypasses the iframe, but then the Power Apps SDK **does not initialize** (no `_localConnectionUrl` bootstrap) and every Dataverse call hangs. Use this only for pure-UI tests with no data calls.
 - **Do NOT read Dataverse bytes back immediately after `upload`.** `AccountsService.downloadImage(id, 'entityimage', true)` called right after a successful `PATCH …/entityimage` can return `204 No Content` — Dataverse has accepted the upload but hasn't materialized the read-side image yet. Retry with a short delay, or read `entityimage_url` from a subsequent `get` and render from there.
 - **Port**: the starter uses Vite's default `5173` via the `@microsoft/power-apps-vite` plugin — `npx power-apps run` is not needed and `init --app-url http://localhost:3000` is stale. Use `http://localhost:5173/` in the `_localAppUrl` / `_localConnectionUrl` query params.
-- **Multiple Chrome channels**: MCP picks the *first* `127.0.0.1:9222`. If both stable and beta expose 9222, results are non-deterministic — close one or change `--channel`.
+- **Multiple Chrome channels**: MCP picks the _first_ `127.0.0.1:9222`. If both stable and beta expose 9222, results are non-deterministic — close one or change `--channel`.
 - **Console truncation**: `list_console_messages` summarises objects as `[object Object]`. Always follow up with `get_console_message({ msgid })` to get the full `Arg #N` dump.
 - **Re-snapshot after re-render**: Tanstack Query re-fetches / route changes invalidate `uid`s. Call `take_snapshot` again before the next `click` / `fill`.
 - **Secrets in console**: if the app logs tokens or connection strings, `get_console_message` will faithfully return them — strip or scope the diagnostic logs before running against shared profiles.

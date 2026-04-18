@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "appId": "a23d3461-cca4-4180-8b07-62669de5954a",
+  "appDisplayName": "codeapps",
+  "region": "prod",
+  "environmentId": "d1aa74fd-091f-e70a-afaf-a538b868e804",
+  "description": " ",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {},
+  "databaseReferences": {
+    "default.cds": {
+      "dataSources": {
+        "accounts": {
+          "entitySetName": "accounts",
+          "logicalName": "account",
+          "isHidden": false
+        },
+        "contacts": {
+          "entitySetName": "contacts",
+          "logicalName": "contact",
+          "isHidden": false
+        }
+      },
+      "environmentVariableName": ""
+    }
+  }
+}
