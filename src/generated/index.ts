@@ -7,7 +7,10 @@
 export * as AccountsModel from "./models/AccountsModel";
 export * as CommonModels from "./models/CommonModels";
 export * as ContactsModel from "./models/ContactsModel";
+export * as Global_GetCurrentDataverseUrlModel from "./models/Global_GetCurrentDataverseUrlModel";
 
 // Services
 export * from "./services/AccountsService";
 export * from "./services/ContactsService";
+export * from "./services/Global_GetCurrentDataverseUrlService";
+export * from "./services/WhoAmIService";

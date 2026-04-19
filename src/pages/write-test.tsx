@@ -2,6 +2,8 @@ import { useState } from "react";
 import { getContext } from "@microsoft/power-apps/app";
 import { AccountsService } from "@/generated/services/AccountsService";
 import { ContactsService } from "@/generated/services/ContactsService";
+import { Global_GetCurrentDataverseUrlService } from "@/generated/services/Global_GetCurrentDataverseUrlService";
+import { WhoAmIService } from "@/generated/services/WhoAmIService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -224,7 +226,58 @@ export default function WriteTestPage() {
       }
 
       // ------------------------------------------------------------------
-      // 8) Filter syntax — does bare `in (guid,guid)` work or do we need
+      // 8) Dataverse API — resolve the current user/org ids.
+      // ------------------------------------------------------------------
+      const whoAmIRes = await WhoAmIService.WhoAmI();
+      const whoAmIData = whoAmIRes.data as Record<string, unknown> | undefined;
+
+      // Validate that all required IDs are present and non-null
+      const hasUserId = whoAmIData?.UserId != null;
+      const hasOrganizationId = whoAmIData?.OrganizationId != null;
+      const hasBusinessUnitId = whoAmIData?.BusinessUnitId != null;
+      const allIdsPresent = hasUserId && hasOrganizationId && hasBusinessUnitId;
+
+      let whoAmIStatus: "ok" | "err";
+      let whoAmIDetail: string;
+
+      if (!whoAmIRes.success || !whoAmIData) {
+        whoAmIStatus = "err";
+        whoAmIDetail = whoAmIRes.error?.message ?? "WhoAmI returned no data";
+      } else if (!allIdsPresent) {
+        whoAmIStatus = "err";
+        const missingIds: string[] = [];
+        if (!hasUserId) missingIds.push("UserId");
+        if (!hasOrganizationId) missingIds.push("OrganizationId");
+        if (!hasBusinessUnitId) missingIds.push("BusinessUnitId");
+        whoAmIDetail = `Missing required IDs: ${missingIds.join(", ")}`;
+      } else {
+        whoAmIStatus = "ok";
+        whoAmIDetail = `UserId=${String(whoAmIData.UserId)}; OrganizationId=${String(
+          whoAmIData.OrganizationId,
+        )}; BusinessUnitId=${String(whoAmIData.BusinessUnitId)}`;
+      }
+
+      append({
+        step: "dataverse api: WhoAmI",
+        status: whoAmIStatus,
+        detail: whoAmIDetail,
+      });
+
+      // ------------------------------------------------------------------
+      // 9) Cloud flow — resolve the current Dataverse environment URL.
+      // ------------------------------------------------------------------
+      const urlRes = await Global_GetCurrentDataverseUrlService.Run({});
+      append({
+        step: "flow: Global | Get Current Dataverse Url",
+        status: urlRes.success && urlRes.data?.environmenturl ? "ok" : "err",
+        detail:
+          urlRes.success && urlRes.data?.environmenturl
+            ? urlRes.data.environmenturl
+            : (urlRes.error?.message ?? "flow returned no environmenturl"),
+      });
+
+      // ------------------------------------------------------------------
+      // 10) Filter syntax — does bare `in (guid,guid)` work or do we need
       //    `or` chaining? Also try quoted-guid form to confirm rejection.
       // ------------------------------------------------------------------
       const id1 = seedAccountId;
@@ -283,7 +336,7 @@ export default function WriteTestPage() {
       }
 
       // ------------------------------------------------------------------
-      // 9) Pagination — maxPageSize + skipToken round-trip, plus count.
+      // 11) Pagination — maxPageSize + skipToken round-trip, plus count.
       // ------------------------------------------------------------------
       const p1 = await AccountsService.getAll({
         select: ["accountid", "name"] as string[],

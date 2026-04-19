@@ -50,11 +50,11 @@ Omit flags to be prompted. This creates/updates `power.config.json`.
 - **Connector table/resource**: `npx power-apps add-data-source` (prompts for API, connection, table). Discover values with `list-connection-references`, `list-datasets`, `list-tables`.
 - **Dataverse table (shortcut)**: `npx power-apps add-data-source --api-id dataverse --resource-name <table> --org-url <orgUrl>`. No pre-existing connection reference is required; the CLI fetches entity metadata (attributes, option sets, relationships) directly from Dataverse and scaffolds a typed service. Get `<orgUrl>` from `pac env who` ("Org URL"). Example: `--api-id dataverse --resource-name account --org-url https://contoso.crm.dynamics.com/`.
 - **SQL stored procedure**: `add-data-source --sql-stored-procedure <name>` (use `list-sqlStoredProcedures`).
-- **Cloud flow**: `npx power-apps add-flow --flow-id <guid>` (discover with `list-flows --search <name>`). Generates typed model services and wires connection references.
-- **Dataverse action/function**: discover with `find-dataverse-api --search <term>`.
+- **Cloud flow**: `npx power-apps add-flow --flow-id <guid>` (discover with `list-flows --search <name>`). The CLI writes a schema under `.power/schemas/logicflows/`, updates `power.config.json` `connectionReferences`, extends `.power/schemas/appschemas/dataSourcesInfo.ts`, and generates typed service/model files under `src/generated/`. Verified here: `Global | Get Current Dataverse Url` generated `Global_GetCurrentDataverseUrlService.Run({})` with output shape `{ environmenturl?: string }`.
+- **Dataverse action/function**: first discover with `npx power-apps find-dataverse-api --search <term> [--json]`, then add with `npx power-apps add-dataverse-api --api-name <name>`. The CLI writes `.power/schemas/dataverse/<ApiName>.Schema.json`, regenerates `dataSourcesInfo.ts`, may add a hidden binding/reference entity to `power.config.json`, and generates `src/generated/services/<ApiName>Service.ts`. Verified here: `WhoAmI` generated `WhoAmIService.WhoAmI()` returning `IOperationResult<Record<string, unknown>>` with keys including `UserId`, `OrganizationId`, and `BusinessUnitId`.
 - **Remove**: `delete-data-source` or `remove-flow --flow-name <name>`.
 
-After adding sources, generated TypeScript models/services appear under `src/generated/` (`src/generated/models/` and `src/generated/services/`, e.g. `AccountsService.ts`). The raw entity schema is cached at `.power/schemas/<api>/<dataSourceName>.Schema.json`. The data source name is pluralized from the table (e.g. `account` → `accounts`). Import and call generated services from app code — do **not** hand-edit generated files; re-run `add-data-source` / `add-flow` to regenerate.
+After adding sources, generated TypeScript models/services appear under `src/generated/` (`src/generated/models/` and `src/generated/services/`, e.g. `AccountsService.ts`). Table schemas live under `.power/schemas/dataverse/<Table>.Schema.json`, flow schemas under `.power/schemas/logicflows/<Flow>.Schema.json`, and Dataverse operation schemas under `.power/schemas/dataverse/<ApiName>.Schema.json`. The data source name is pluralized from the table (e.g. `account` → `accounts`). Import and call generated services from app code — do **not** hand-edit generated files; re-run `add-data-source`, `add-flow`, or `add-dataverse-api` to regenerate.
 
 ### Run locally
 
@@ -103,6 +103,8 @@ Always check lint at the end of the task before considering the work done. In th
 | List apps            | `npx power-apps list-codeapps`                                                         |
 | List connection refs | `npx power-apps list-connection-references [-s <solution-id>]`                         |
 | List flows           | `npx power-apps list-flows [--search <term>]`                                          |
+| Find Dataverse API   | `npx power-apps find-dataverse-api --search <term> [--json]`                           |
+| Add Dataverse API    | `npx power-apps add-dataverse-api --api-name <name>`                                   |
 | Env variables        | `npx power-apps list-environment-variables`                                            |
 | Logout               | `npx power-apps logout`                                                                |
 | Telemetry            | `npx power-apps telemetry --show-settings` / `--disable`                               |
