@@ -230,15 +230,37 @@ export default function WriteTestPage() {
       // ------------------------------------------------------------------
       const whoAmIRes = await WhoAmIService.WhoAmI();
       const whoAmIData = whoAmIRes.data as Record<string, unknown> | undefined;
+
+      // Validate that all required IDs are present and non-null
+      const hasUserId = whoAmIData?.UserId != null;
+      const hasOrganizationId = whoAmIData?.OrganizationId != null;
+      const hasBusinessUnitId = whoAmIData?.BusinessUnitId != null;
+      const allIdsPresent = hasUserId && hasOrganizationId && hasBusinessUnitId;
+
+      let whoAmIStatus: "ok" | "err";
+      let whoAmIDetail: string;
+
+      if (!whoAmIRes.success || !whoAmIData) {
+        whoAmIStatus = "err";
+        whoAmIDetail = whoAmIRes.error?.message ?? "WhoAmI returned no data";
+      } else if (!allIdsPresent) {
+        whoAmIStatus = "err";
+        const missingIds: string[] = [];
+        if (!hasUserId) missingIds.push("UserId");
+        if (!hasOrganizationId) missingIds.push("OrganizationId");
+        if (!hasBusinessUnitId) missingIds.push("BusinessUnitId");
+        whoAmIDetail = `Missing required IDs: ${missingIds.join(", ")}`;
+      } else {
+        whoAmIStatus = "ok";
+        whoAmIDetail = `UserId=${String(whoAmIData.UserId)}; OrganizationId=${String(
+          whoAmIData.OrganizationId,
+        )}; BusinessUnitId=${String(whoAmIData.BusinessUnitId)}`;
+      }
+
       append({
         step: "dataverse api: WhoAmI",
-        status: whoAmIRes.success && whoAmIData ? "ok" : "err",
-        detail:
-          whoAmIRes.success && whoAmIData
-            ? `UserId=${String(whoAmIData.UserId ?? "?")}; OrganizationId=${String(
-                whoAmIData.OrganizationId ?? "?",
-              )}; BusinessUnitId=${String(whoAmIData.BusinessUnitId ?? "?")}`
-            : (whoAmIRes.error?.message ?? "WhoAmI returned no data"),
+        status: whoAmIStatus,
+        detail: whoAmIDetail,
       });
 
       // ------------------------------------------------------------------

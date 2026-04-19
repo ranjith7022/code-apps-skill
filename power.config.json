@@ -33,11 +33,6 @@
           "entitySetName": "contacts",
           "logicalName": "contact",
           "isHidden": false
-        },
-        "environment_39a902ba": {
-          "entitySetName": "Environment",
-          "logicalName": "environment_39a902ba",
-          "isHidden": false
         }
       },
       "environmentVariableName": ""
