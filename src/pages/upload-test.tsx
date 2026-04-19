@@ -32,7 +32,6 @@ export default function UploadTestPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const autoRan = useRef(false);
-
   const append = (entry: LogEntry) => setLog((prev) => [...prev, entry]);
 
   async function runUpload(overrideFile?: File) {

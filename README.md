@@ -16,6 +16,18 @@ Designed for common app scenarios, easy extensibility, and minimal setup.
 
 ---
 
+## TypeScript Native Preview
+
+This workspace is configured to use the TypeScript native preview (`tsgo`) for
+project type-checking.
+
+- `vp run typecheck` runs `tsgo -b`
+- `vp run build` runs `tsgo -b && vp build`
+- `.vscode/settings.json` enables `js/ts.experimental.useTsgo`
+- `.vscode/extensions.json` recommends the `TypeScriptTeam.native-preview` extension
+
+---
+
 ## Pre-installed libraries
 
 - [Tailwind CSS](https://tailwindcss.com/) - utility-first CSS framework
