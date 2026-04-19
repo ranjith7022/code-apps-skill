@@ -9,7 +9,18 @@
   "buildEntryPoint": "index.html",
   "localAppUrl": "http://localhost:3000",
   "logoPath": "Default",
-  "connectionReferences": {},
+  "connectionReferences": {
+    "fc8e92a1-bfc9-44d7-9515-0c42f2689222": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
+      "displayName": "Logic flows",
+      "dataSources": ["global_getcurrentdataverseurl"],
+      "workflowDetails": {
+        "workflowEntityId": "e74b3f15-5310-f011-9988-000d3a329ac2",
+        "workflowDisplayName": "Global | Get Current Dataverse Url",
+        "workflowName": "2798d8dd-f337-6e7a-8600-e420cf5e7764"
+      }
+    }
+  },
   "databaseReferences": {
     "default.cds": {
       "dataSources": {
@@ -21,6 +32,11 @@
         "contacts": {
           "entitySetName": "contacts",
           "logicalName": "contact",
+          "isHidden": false
+        },
+        "environment_39a902ba": {
+          "entitySetName": "Environment",
+          "logicalName": "environment_39a902ba",
           "isHidden": false
         }
       },

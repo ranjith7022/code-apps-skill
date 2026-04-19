@@ -1,0 +1,34 @@
+{
+  "name": "WhoAmI",
+  "title": "WhoAmI",
+  "type": "Microsoft.PowerApps/dataverseOperation",
+  "properties": {
+    "displayName": "WhoAmI",
+    "swagger": {
+      "swagger": "2.0",
+      "info": {
+        "title": "WhoAmI",
+        "version": "1.0"
+      },
+      "basePath": "/api/data/v9.2",
+      "paths": {
+        "/WhoAmI": {
+          "get": {
+            "operationId": "WhoAmI",
+            "parameters": [],
+            "responses": {
+              "200": {
+                "description": "Success",
+                "schema": {
+                  "type": "object",
+                  "x-ms-dataverse-type": "LookupType",
+                  "x-ms-csdl-type": "mscrm.WhoAmIResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
