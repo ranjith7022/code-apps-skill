@@ -19,6 +19,16 @@
         "workflowDisplayName": "Global | Get Current Dataverse Url",
         "workflowName": "2798d8dd-f337-6e7a-8600-e420cf5e7764"
       }
+    },
+    "d7e30962-c29b-45d5-8106-d7643ba297e9": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
+      "displayName": "Logic flows",
+      "dataSources": ["setupwizard_getsolutionenvironmentvariabledefinitionsdetails"],
+      "workflowDetails": {
+        "workflowEntityId": "d8a8c388-8a25-f011-8c4e-00224808dbf5",
+        "workflowDisplayName": "Setup Wizard | Get Solution Environment Variable Definitions Details",
+        "workflowName": "36bcfa88-d186-36c6-eef8-84fbd41b4933"
+      }
     }
   },
   "databaseReferences": {

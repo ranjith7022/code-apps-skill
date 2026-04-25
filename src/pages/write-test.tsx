@@ -3,6 +3,7 @@ import { getContext } from "@microsoft/power-apps/app";
 import { AccountsService } from "@/generated/services/AccountsService";
 import { ContactsService } from "@/generated/services/ContactsService";
 import { Global_GetCurrentDataverseUrlService } from "@/generated/services/Global_GetCurrentDataverseUrlService";
+import { SetupWizard_GetSolutionEnvironmentVariableDefinitionsDetailsService } from "@/generated/services/SetupWizard_GetSolutionEnvironmentVariableDefinitionsDetailsService";
 import { WhoAmIService } from "@/generated/services/WhoAmIService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,30 @@ type ContactRow = Contacts & Record<string, unknown>;
 
 // Cast helper for @odata.bind — generated type doesn't include the key.
 type AccountCreatePayload = Record<string, unknown>;
+
+function summarizeEnvDefinitions(envdefn: string, limit = 5) {
+  try {
+    const parsed = JSON.parse(envdefn) as unknown;
+    if (!Array.isArray(parsed)) {
+      return envdefn;
+    }
+
+    const items = parsed
+      .slice(0, limit)
+      .map((item) => {
+        const row = item as Record<string, unknown>;
+        const displayName = String(row.displayname ?? "(no display name)");
+        const schemaName = String(row.schemaname ?? "(no schema name)");
+        return `${displayName} (${schemaName})`;
+      })
+      .join("; ");
+
+    const remaining = Math.max(parsed.length - limit, 0);
+    return `${parsed.length} definitions: ${items}${remaining > 0 ? `; +${remaining} more` : ""}`;
+  } catch {
+    return envdefn;
+  }
+}
 
 export default function WriteTestPage() {
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -274,6 +299,19 @@ export default function WriteTestPage() {
           urlRes.success && urlRes.data?.environmenturl
             ? urlRes.data.environmenturl
             : (urlRes.error?.message ?? "flow returned no environmenturl"),
+      });
+
+      const envDefinitionsRes =
+        await SetupWizard_GetSolutionEnvironmentVariableDefinitionsDetailsService.Run({
+          text_2: "0fe7c0b3-3c3a-48e8-a65b-da6a20392479",
+        });
+      append({
+        step: "flow: Setup Wizard | Get Solution Environment Variable Definitions Details",
+        status: envDefinitionsRes.success && envDefinitionsRes.data?.envdefn ? "ok" : "err",
+        detail:
+          envDefinitionsRes.success && envDefinitionsRes.data?.envdefn
+            ? summarizeEnvDefinitions(envDefinitionsRes.data.envdefn)
+            : (envDefinitionsRes.error?.message ?? "flow returned no envdefn"),
       });
 
       // ------------------------------------------------------------------

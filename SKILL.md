@@ -58,18 +58,18 @@ After adding sources, generated TypeScript models/services appear under `src/gen
 
 ### Run locally
 
-The **recommended path** is the `@microsoft/power-apps-vite` plugin (already wired into the official `starter` template's `vite.config.ts` as `powerApps()`). The plugin serves `/__vite_powerapps_plugin__/power.config.json` from the Vite dev server itself and handles SDK auth / connector bridging — **you do NOT need `npx power-apps run`**:
+The **recommended path** is the `@microsoft/power-apps-vite` plugin (already wired into the official `starter` template's `vite.config.ts` as `powerApps()`). The plugin serves `/__vite_powerapps_plugin__/power.config.json` from the Vite dev server itself and handles SDK auth / connector bridging — **you do NOT need `npx power-apps run`**. In this repo, use Vite+ directly and let it choose/report the dev server URL; do not manually set `--port` or `--host` unless the user explicitly asks:
 
 ```sh
-npm run dev     # Vite on :5173 (default) — this is all you need
+vp dev
 ```
 
-Then open the Power Apps local-play URL (templated with your env id) in a browser already signed in to the tenant:
+Then open the Power Apps local-play URL printed by `vp dev` in a browser already signed in to the tenant. If you need to construct it manually, use the exact local URL reported by `vp dev` for both parameters:
 
 ```
 https://apps.powerapps.com/play/e/<envId>/a/local
-  ?_localAppUrl=http://localhost:5173/
-  &_localConnectionUrl=http://localhost:5173/__vite_powerapps_plugin__/power.config.json
+  ?_localAppUrl=<dev-server-url>/
+  &_localConnectionUrl=<dev-server-url>/__vite_powerapps_plugin__/power.config.json
 ```
 
 If your stack has no Vite plugin (plain Vue, Svelte, Next.js, bare webpack, etc.) **then** fall back to the standalone proxy:
